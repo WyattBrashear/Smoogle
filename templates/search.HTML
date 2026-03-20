@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>{{ query }} | Smoogle Search</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body>
+<a class="bg-sky-500 hover:bg-sky-700: rounded-full text-white border-2 border-black w-32 h-12" href="/">Return</a>
+<h1 style="text-align: center"> Search Results For: {{ query }}</h1>
+{% for link, title in data %}
+<br>
+    <div class="border" style="display: flex;">
+    <img style="width: 32px; height: 32px;" src="{{ link }}/favicon.ico" alt="favicon"> <a href="{{ link }}">{{ title }}</a>
+</div>
+{% endfor %}
+</body>
+</html>

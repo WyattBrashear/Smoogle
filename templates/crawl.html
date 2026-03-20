@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smoogle | Crawl</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body>
+<a class="bg-sky-500 hover:bg-sky-700: rounded-full text-white border-2 border-black w-32 h-12" href="/">Return</a>
+<h2 style="text-align: center" class="text-2xl">Dont see your Favorite website in Smoogle's database of {{ indexed }} sites?</h2>
+<h2 style="text-align: center" class="text-1xl">Enter your site down below and click Crawl in order to add it!</h2>
+<br>
+<br>
+<div class="flex justify-center">
+<form action="/crawl" method="post">
+    <label for="url">URL:</label>
+    <input class="border" type="text" id="url" name="url">
+    <label for="depth">Depth:</label>
+    <select class="border" name="depth" id="depth">
+        <option value="0">0</option>
+        <option value="1">1</option>
+    </select>
+    <button class="bg-sky-500 hover:bg-sky-700: rounded-full text-white border-8 w-32 h-12" type="submit">Crawl!</button>
+</form>
+</div>
+</body>
+</html>
