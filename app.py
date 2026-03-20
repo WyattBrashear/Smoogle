@@ -99,8 +99,8 @@ def search():
     if query == "":
         query = "None"
     db_query = "SELECT url, title FROM SearchData_index WHERE SearchData_index MATCH ? ORDER BY rank"
-    #get the IDFDF data from the database
-    data = db.execute(db_query, (query,)).fetchall()
+    #get the ITFDF data from the database
+    data = db.execute(db_query, (f'"{query}"',)).fetchall()
     return render_template('search.HTML', data=data, query=query)
 
 _init_db()
