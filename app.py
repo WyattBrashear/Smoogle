@@ -18,6 +18,8 @@ def _init_db():
     db.commit()
 app = Flask(__name__)
 
+def extract_rooturl(url):
+    pass
 def exec_crawl(url, depth):
     db = sqlite3.connect('SearchData.db')
     db.execute('CREATE TABLE IF NOT EXISTS SearchData (url TEXT, title TEXT, content TEXT, datetime TEXT, idfdf TEXT)')
