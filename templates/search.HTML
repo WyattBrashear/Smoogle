@@ -7,10 +7,10 @@
 <body>
 <a class="bg-sky-500 hover:bg-sky-700: rounded-full text-white border-2 border-black w-32 h-12" href="/">Return</a>
 <h1 style="text-align: center "> Search Results For: {{ query }}</h1>
-{% for link, title in data %}
+{% for link, title, favicon in data %}
 <br>
     <div class="border rounded-full" style="display: flex;">
-    <img style="width: 16px; height: 16px;" src="{{ link }}/favicon.ico" alt="favicon"> <a  class="" href="{{ link }}">{{ title }}</a>
+    <img style="width: 16px; height: 16px;" src="{{ favicon }}" alt="favicon"> <a  class="" href="{{ link }}">{{ title }}</a>
 </div>
 {% endfor %}
 </body>

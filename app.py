@@ -4,25 +4,37 @@ import sqlite3
 import threading
 import time
 from datetime import datetime
+from urllib.parse import urlparse
 
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, request, render_template
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+def get_favicon(url):
+    #So turns out BS4 can just extract the favicons for you (:P)
+    soup = BeautifulSoup(requests.get(url).text, 'html.parser')
+    favicon = soup.find_all('link', rel=['icon', 'shortcut icon'])
+    if favicon:
+        if not favicon[0]['href'].startswith('http'):
+            if '/' in favicon[0]['href']:
+                return f"{url}{favicon[0]['href']}"
+            else:
+                return f"{url}/{favicon[0]['href']}"
+        else:
+            return favicon[0]['href']
+    else:
+        return f"{url}/favicon.ico"
 
 def _init_db():
     db = sqlite3.connect('SearchData.db')
-    db.execute('CREATE TABLE IF NOT EXISTS SearchData (url TEXT, title TEXT, content TEXT, datetime TEXT, idfdf TEXT)')
-    db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS SearchData_index USING fts5(url, title, content)")
+    db.execute('CREATE TABLE IF NOT EXISTS SearchData (url TEXT, title TEXT, content TEXT, datetime TEXT, itfdf TEXT, favicon TEXT)')
+    db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS SearchData_index USING fts5(url, title, content, favicon)")
     db.commit()
 app = Flask(__name__)
 
 def exec_crawl(url, depth):
     db = sqlite3.connect('SearchData.db')
-    db.execute('CREATE TABLE IF NOT EXISTS SearchData (url TEXT, title TEXT, content TEXT, datetime TEXT, idfdf TEXT)')
-    db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS SearchData_index USING fts5(url, title, content)")
-    db.commit()
     depth = int(depth)
     headers = {'User-Agent': "SmoogleBot"}
     r = requests.get(url, headers=headers)
@@ -37,10 +49,10 @@ def exec_crawl(url, depth):
         title = soup.title.text
     except:
         title = "None"
-    db.execute('INSERT INTO SearchData (url, title, content, datetime, idfdf) VALUES (?, ?, ?, ?, ?)',
-               (url, title, str(soup.get_text()), datetime.now().isoformat(), json.dumps(json_data)))
-    db.execute('INSERT INTO SearchData_index (url, title, content) VALUES (?, ?, ?)',
-               (url, title, str(soup.get_text()),))
+    db.execute('INSERT INTO SearchData (url, title, content, datetime, itfdf, favicon) VALUES (?, ?, ?, ?, ?, ?)',
+               (url, title, str(soup.get_text()), datetime.now().isoformat(), json.dumps(json_data), get_favicon(url)))
+    db.execute('INSERT INTO SearchData_index (url, title, content, favicon) VALUES (?, ?, ?, ?)',
+               (url, title, str(soup.get_text()), get_favicon(url)))
     links = soup.find_all('a')
     db.commit()
     if depth > 0:
@@ -63,11 +75,11 @@ def exec_crawl(url, depth):
                             print(e)
                             title = "None"
                         db.execute(
-                            'INSERT INTO SearchData (url, title, content, datetime, idfdf) VALUES (?, ?, ?, ?, ?)',
+                            'INSERT INTO SearchData (url, title, content, datetime, itfdf, favicon) VALUES (?, ?, ?, ?, ?, ?)',
                             (link['href'], title, str(soup.get_text()), datetime.now().isoformat(),
-                             json.dumps(json_data)))
-                        db.execute('INSERT INTO SearchData_index (url, title, content) VALUES (?, ?, ?)',
-                                   (link['href'], title, str(soup.get_text()),))
+                             json.dumps(json_data), get_favicon(link['href'])))
+                        db.execute('INSERT INTO SearchData_index (url, title, content, favicon) VALUES (?, ?, ?, ?)',
+                                   (link['href'], title, str(soup.get_text()), get_favicon(link['href'])))
                         db.commit()
                     except Exception as e:
                         print(e)
@@ -98,7 +110,7 @@ def search():
     query = request.form['query']
     if query == "":
         query = "None"
-    db_query = "SELECT url, title FROM SearchData_index WHERE SearchData_index MATCH ? ORDER BY rank"
+    db_query = "SELECT url, title, favicon FROM SearchData_index WHERE SearchData_index MATCH ? ORDER BY rank"
     #get the ITFDF data from the database
     data = db.execute(db_query, (f'"{query}"',)).fetchall()
     return render_template('search.HTML', data=data, query=query)
@@ -106,6 +118,5 @@ def search():
 _init_db()
 if __name__ == '__main__':
     db = sqlite3.connect('SearchData.db')
-    db.execute('CREATE TABLE IF NOT EXISTS SearchData (url TEXT, title TEXT, datetime TEXT)')
-    db.commit()
+    _init_db()
     app.run()
