@@ -4,6 +4,7 @@ import sqlite3
 import threading
 import time
 from datetime import datetime
+import urllib.parse
 
 import requests
 from bs4 import BeautifulSoup
@@ -13,8 +14,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 def _init_db():
     db = sqlite3.connect('SearchData.db')
-    db.execute('CREATE TABLE IF NOT EXISTS SearchData (url TEXT, title TEXT, content TEXT, datetime TEXT, idfdf TEXT)')
-    db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS SearchData_index USING fts5(url, title, content)")
+    db.execute('CREATE TABLE IF NOT EXISTS SearchData (url TEXT, title TEXT, content TEXT, datetime TEXT, idfdf TEXT, favicon)')
+    db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS SearchData_index USING fts5(url, title, content, favicon)")
     db.commit()
 app = Flask(__name__)
 
@@ -22,9 +23,6 @@ def extract_rooturl(url):
     pass
 def exec_crawl(url, depth):
     db = sqlite3.connect('SearchData.db')
-    db.execute('CREATE TABLE IF NOT EXISTS SearchData (url TEXT, title TEXT, content TEXT, datetime TEXT, idfdf TEXT)')
-    db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS SearchData_index USING fts5(url, title, content)")
-    db.commit()
     depth = int(depth)
     headers = {'User-Agent': "SmoogleBot"}
     r = requests.get(url, headers=headers)
@@ -39,9 +37,10 @@ def exec_crawl(url, depth):
         title = soup.title.text
     except:
         title = "None"
-    db.execute('INSERT INTO SearchData (url, title, content, datetime, idfdf) VALUES (?, ?, ?, ?, ?)',
+    favicon = urllib.parse
+    db.execute('INSERT INTO SearchData (url, title, content, datetime, idfdf, favicon) VALUES (?, ?, ?, ?, ?, ?)',
                (url, title, str(soup.get_text()), datetime.now().isoformat(), json.dumps(json_data)))
-    db.execute('INSERT INTO SearchData_index (url, title, content) VALUES (?, ?, ?)',
+    db.execute('INSERT INTO SearchData_index (url, title, content, favicon) VALUES (?, ?, ?, ?)',
                (url, title, str(soup.get_text()),))
     links = soup.find_all('a')
     db.commit()
