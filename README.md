@@ -5,7 +5,7 @@ many of my older projects, it was completely vibe coded. I feel shame regarding 
 I created a new version.
 ## Crawling information
 Smmogle's crawler is semi-automatic. It requires a user in order to start it. It sends one request every five seconds
-(Normal Crawling Ettiquette)
+(Normal Crawling Etiquette)
 ### How is Crawling Started?
 1. A user does not see a website that they want
 2. They go to the crawling page
