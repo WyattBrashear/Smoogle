@@ -3,6 +3,6 @@ LABEL authors="wyattbrashear"
 WORKDIR /app
 COPY . /app
 
-RUN "pip install beautifulsoup4 flask requests scikit-learn, gunicorn"
+RUN "pip install beautifulsoup4 flask requests scikit-learn gunicorn"
 
 ENTRYPOINT ["gunicorn", "app:app", "--bind", "5000"]
