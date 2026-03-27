@@ -4,11 +4,14 @@ import sqlite3
 import threading
 import time
 from datetime import datetime
+from urllib.parse import urlparse
+from urllib.robotparser import RobotFileParser
 
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, request, render_template
 from sklearn.feature_extraction.text import TfidfVectorizer
+
 
 def get_favicon(url):
     #So turns out BS4 can just extract the favicons for you (:P)
@@ -33,57 +36,66 @@ def _init_db():
 app = Flask(__name__)
 
 def exec_crawl(url, depth):
-    db = sqlite3.connect('SearchData.db')
-    depth = int(depth)
-    headers = {'User-Agent': "SmoogleBot"}
-    r = requests.get(url, headers=headers)
-    soup = BeautifulSoup(r.text, 'html.parser')
-    documents = [str(soup.get_text())]
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform(documents)
-    json_data = {
-        "wordlist": vectorizer.get_feature_names_out().tolist()
-    }
-    try:
-        title = soup.title.text
-    except:
-        title = "None"
-    db.execute('INSERT INTO SearchData (url, title, content, datetime, itfdf, favicon) VALUES (?, ?, ?, ?, ?, ?)',
+    robots_url = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+    rp = RobotFileParser()
+    rp.set_url(robots_url)
+    rp.read()
+    if not rp.can_fetch("*",robots_url) and not rp.can_fetch("SmoogleBot",url):
+        pass
+    else:
+        db = sqlite3.connect('SearchData.db')
+        depth = int(depth)
+        headers = {'User-Agent': "SmoogleBot"}
+        r = requests.get(url, headers=headers)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        documents = [str(soup.get_text())]
+        vectorizer = TfidfVectorizer()
+        tfidf_matrix = vectorizer.fit_transform(documents)
+        json_data = {
+            "wordlist": vectorizer.get_feature_names_out().tolist()
+        }
+        try:
+            title = soup.title.text
+        except:
+            title = "None"
+        db.execute('INSERT INTO SearchData (url, title, content, datetime, itfdf, favicon) VALUES (?, ?, ?, ?, ?, ?)',
                (url, title, str(soup.get_text()), datetime.now().isoformat(), json.dumps(json_data), get_favicon(url)))
-    db.execute('INSERT INTO SearchData_index (url, title, content, favicon) VALUES (?, ?, ?, ?)',
+        db.execute('INSERT INTO SearchData_index (url, title, content, favicon) VALUES (?, ?, ?, ?)',
                (url, title, str(soup.get_text()), get_favicon(url)))
-    links = soup.find_all('a')
-    db.commit()
-    if depth > 0:
-        for link in links:
-            if link.get('href') is not None:
-                if link.get('href').startswith('http') and link.get('href') not in db.execute(
-                        'SELECT url FROM SearchData').fetchall():
-                    try:
-                        r = requests.get(link['href'], headers=headers)
-                        soup = BeautifulSoup(r.text, 'html.parser')
-                        documents = [str(soup.get_text())]
-                        vectorizer = TfidfVectorizer()
-                        tfidf_matrix = vectorizer.fit_transform(documents)
-                        json_data = {
-                            "wordlist": vectorizer.get_feature_names_out().tolist()
-                        }
-                        try:
-                            title = soup.title.text
-                        except Exception as e:
-                            print(e)
-                            title = "None"
-                        db.execute(
-                            'INSERT INTO SearchData (url, title, content, datetime, itfdf, favicon) VALUES (?, ?, ?, ?, ?, ?)',
-                            (link['href'], title, str(soup.get_text()), datetime.now().isoformat(),
-                             json.dumps(json_data), get_favicon(link['href'])))
-                        db.execute('INSERT INTO SearchData_index (url, title, content, favicon) VALUES (?, ?, ?, ?)',
-                                   (link['href'], title, str(soup.get_text()), get_favicon(link['href'])))
-                        db.commit()
-                    except Exception as e:
-                        print(e)
-                    time.sleep(5)
+        links = soup.find_all('a')
         db.commit()
+        if depth > 0:
+            for link in links:
+                if link.get('href') is not None:
+                    if link.get('href').startswith('http') and link.get('href') not in db.execute('SELECT url FROM SearchData').fetchall():
+                        rp.set_url(link['href'])
+                        rp.read()
+                        if rp.can_fetch("*",link['href']) or rp.can_fetch("SmoogleBot",link['href']):
+                            try:
+                                r = requests.get(link['href'], headers=headers)
+                                soup = BeautifulSoup(r.text, 'html.parser')
+                                documents = [str(soup.get_text())]
+                                vectorizer = TfidfVectorizer()
+                                tfidf_matrix = vectorizer.fit_transform(documents)
+                                json_data = {
+                                    "wordlist": vectorizer.get_feature_names_out().tolist()
+                                }
+                                try:
+                                    title = soup.title.text
+                                except Exception as e:
+                                    print(e)
+                                    title = "None"
+                                db.execute(
+                                    'INSERT INTO SearchData (url, title, content, datetime, itfdf, favicon) VALUES (?, ?, ?, ?, ?, ?)',
+                                    (link['href'], title, str(soup.get_text()), datetime.now().isoformat(),
+                                     json.dumps(json_data), get_favicon(link['href'])))
+                                db.execute('INSERT INTO SearchData_index (url, title, content, favicon) VALUES (?, ?, ?, ?)',
+                                           (link['href'], title, str(soup.get_text()), get_favicon(link['href'])))
+                                db.commit()
+                            except Exception as e:
+                                print(e)
+                            time.sleep(5)
+                db.commit()
 
 @app.route("/crawl", methods=["POST"])
 def crawl():
