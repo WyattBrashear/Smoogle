@@ -1,8 +1,13 @@
-FROM python:3.13.12-slim-bookworm
+FROM python:3.13-slim-bookworm
 LABEL authors="wyattbrashear"
+
 WORKDIR /app
-COPY . /app
 
-RUN pip install beautifulsoup4 flask requests scikit-learn gunicorn
+COPY pyproject.toml .
+RUN pip install --no-cache-dir beautifulsoup4 flask requests scikit-learn gunicorn
 
-ENTRYPOINT ["gunicorn", "app:app", "--bind", "5000"]
+COPY . .
+
+EXPOSE 5000
+
+ENTRYPOINT ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120"]

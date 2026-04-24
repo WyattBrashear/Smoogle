@@ -17,19 +17,42 @@ def get_favicon(url):
     #So turns out BS4 can just extract the favicons for you (:P)
     soup = BeautifulSoup(requests.get(url).text, 'html.parser')
     favicon = soup.find_all('link', rel=['icon', 'shortcut icon'])
+    print(favicon)
+    print(url)
+    try:
+        r1 = requests.get(f"{url}{favicon[0]['href']}")
+    except:
+        pass
+    try:
+        r2 = requests.get(f"{url}/{favicon[0]['href']}")
+    except:
+        pass
+    try:
+        r3 = requests.get(f"{favicon[0]['href']}")
+    except:
+        pass
+    try:
+        r4 = requests.get(f"{url}/favicon.ico")
+    except:
+        pass
     if favicon:
         if not favicon[0]['href'].startswith('http'):
-            if '/' in favicon[0]['href']:
+            if '/' in favicon[0]['href'] and r1.status_code == 200:
                 return f"{url}{favicon[0]['href']}"
-            else:
+            elif r2.status_code == 200:
                 return f"{url}/{favicon[0]['href']}"
-        else:
+            return ""
+        elif r3.status_code == 200:
             return favicon[0]['href']
-    else:
+        else:
+            return ""
+    elif r4.status_code == 200:
         return f"{url}/favicon.ico"
+    else:
+        return ""
 
 def _init_db():
-    db = sqlite3.connect('SearchData.db')
+    db = sqlite3.connect(os.environ.get('DB_PATH', 'SearchData.db'))
     db.execute('CREATE TABLE IF NOT EXISTS SearchData (url TEXT, title TEXT, content TEXT, datetime TEXT, itfdf TEXT, favicon TEXT)')
     db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS SearchData_index USING fts5(url, title, content, favicon)")
     db.commit()
@@ -105,19 +128,19 @@ def crawl():
     return 'Crawling Started, <a href="/">Go Home</a>', 202
 @app.route("/crawl-web/", methods=["GET"])
 def crawl_get():
-    db = sqlite3.connect('SearchData.db')
+    db = sqlite3.connect(os.environ.get('DB_PATH', 'SearchData.db'))
     data = db.execute("SELECT url FROM SearchData").fetchall()
     return render_template("crawl.html", indexed=len(data))
 @app.route('/')
 def index():
-    db = sqlite3.connect('SearchData.db')
+    db = sqlite3.connect(os.environ.get('DB_PATH', 'SearchData.db'))
     db.execute("SELECT url FROM SearchData")
     data = db.execute("SELECT url FROM SearchData").fetchall()
     return render_template(os.path.join('index.html'), indexed=len(data))
 
 @app.route('/search/', methods=['POST'])
 def search():
-    db = sqlite3.connect('SearchData.db')
+    db = sqlite3.connect(os.environ.get('DB_PATH', 'SearchData.db'))
     query = request.form['query']
     if query == "":
         query = "None"
@@ -128,6 +151,6 @@ def search():
 
 _init_db()
 if __name__ == '__main__':
-    db = sqlite3.connect('SearchData.db')
+    db = sqlite3.connect(os.environ.get('DB_PATH', 'SearchData.db'))
     _init_db()
     app.run()
