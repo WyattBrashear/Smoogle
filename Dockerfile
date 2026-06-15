@@ -7,6 +7,6 @@ RUN pip install --no-cache-dir beautifulsoup4 flask requests scikit-learn gunico
 
 COPY . .
 
-EXPOSE 5000
+EXPOSE 80
 
-ENTRYPOINT ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120"]
+ENTRYPOINT ["gunicorn", "app:app", "--bind", "0.0.0.0:80", "--workers", "2", "--timeout", "120"]
