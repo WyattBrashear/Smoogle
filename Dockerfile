@@ -3,7 +3,6 @@ LABEL authors="wyattbrashear"
 
 WORKDIR /app
 
-COPY pyproject.toml .
 RUN pip install --no-cache-dir beautifulsoup4 flask requests scikit-learn gunicorn
 
 COPY . .
